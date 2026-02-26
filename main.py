@@ -12,20 +12,62 @@ from pathlib import Path
 from PIL import Image, ImageColor
 
 
-def parse_color(color_string):
+def parse_background_arg(background_string):
     """
-    Parse a color string into an RGB tuple.
+    Parse a background argument into either an RGB tuple or extraction spec.
     
     Args:
-        color_string: Color name (e.g., 'black', 'white') or hex code (e.g., '#FF0000')
+        background_string: Color name, hex code, or auto extraction spec
+                          Examples: 'black', '#FF0000', 'auto', 'auto:average',
+                                   'auto:edge:corners'
     
     Returns:
-        RGB tuple (r, g, b)
+        Either:
+        - RGB tuple (r, g, b) for manual colors
+        - Dict with extraction spec: {'auto': True, 'method': str, 'region': str}
+    
+    Raises:
+        argparse.ArgumentTypeError: If format is invalid
     """
+    # Check if it's an auto-extraction spec
+    if background_string.startswith('auto'):
+        parts = background_string.split(':')
+        
+        # Default values
+        method = 'dominant'
+        region = 'all'
+        
+        # Parse method
+        if len(parts) >= 2:
+            method = parts[1]
+            if method not in ['dominant', 'average', 'edge']:
+                raise argparse.ArgumentTypeError(
+                    f"Invalid extraction method: {method}. "
+                    f"Valid methods: dominant, average, edge"
+                )
+        
+        # Parse region (only for edge method)
+        if len(parts) >= 3:
+            region = parts[2]
+            if region not in ['all', 'corners']:
+                raise argparse.ArgumentTypeError(
+                    f"Invalid sampling region: {region}. "
+                    f"Valid regions: all, corners"
+                )
+        
+        return {
+            'auto': True,
+            'method': method,
+            'region': region
+        }
+    
+    # Otherwise, parse as a color
     try:
-        return ImageColor.getrgb(color_string)
+        return ImageColor.getrgb(background_string)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"Invalid color: {color_string}")
+        raise argparse.ArgumentTypeError(
+            f"Invalid color or auto spec: {background_string}"
+        )
 
 
 def extract_dominant_color(img):
@@ -309,6 +351,9 @@ Examples:
   %(prog)s input.jpg --width 3840 --height 1080
   %(prog)s input.jpg -w 3840 -h 1080 -o wallpaper.png -f png
   %(prog)s input.jpg -w 5120 -h 1440 --background "#1a1a1a"
+  %(prog)s input.jpg -w 3840 -h 1080 --background auto
+  %(prog)s input.jpg -w 3840 -h 1080 --background auto:average
+  %(prog)s input.jpg -w 3840 -h 1080 --background auto:edge:corners
         """
     )
     
@@ -347,9 +392,9 @@ Examples:
     
     parser.add_argument(
         '-b', '--background',
-        type=parse_color,
+        type=parse_background_arg,
         default='black',
-        help='Background color (name or hex code, default: black)'
+        help='Background color (name, hex code, or auto extraction: auto[:method[:region]])'
     )
     
     args = parser.parse_args()
