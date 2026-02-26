@@ -115,7 +115,7 @@ def extract_edge_color(img, region='all'):
     
     if region == 'corners':
         # Sample 10x10 regions from each corner
-        corner_size = min(10, width // 4, height // 4)
+        corner_size = min(10, max(1, width // 4), max(1, height // 4))
         
         # Top-left
         for y in range(corner_size):
@@ -156,6 +156,9 @@ def extract_edge_color(img, region='all'):
             pixels.append(img.getpixel((width - 1, y)))
     
     # Calculate average of sampled pixels
+    if not pixels:
+        raise ValueError("No pixels collected for edge sampling")
+    
     total_r = sum(p[0] for p in pixels)
     total_g = sum(p[1] for p in pixels)
     total_b = sum(p[2] for p in pixels)
