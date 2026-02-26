@@ -52,6 +52,30 @@ python main.py input.jpg -w 5120 -h 1440 --background white
 python main.py input.jpg -w 3840 -h 1080 --background "#1a1a1a"
 ```
 
+### Auto-Extract Background from Image
+
+```bash
+# Use dominant color from image
+python main.py input.jpg -w 3840 --height 1080 --background auto
+
+# Use average color
+python main.py input.jpg -w 3840 --height 1080 --background auto:average
+
+# Sample from image edges
+python main.py input.jpg -w 3840 --height 1080 --background auto:edge:all
+
+# Sample from corners only
+python main.py input.jpg -w 3840 --height 1080 --background auto:edge:corners
+```
+
+#### Available Extraction Methods
+
+- **dominant** (default): Extracts the most common color in the image
+- **average**: Calculates the mean RGB value across all pixels
+- **edge**: Samples colors from the image borders
+  - **edge:all**: Sample from all four edges
+  - **edge:corners**: Sample from corner regions only
+
 ### Complete Example
 
 ```bash
@@ -72,15 +96,16 @@ python main.py photo.jpg \
 | `--height` | `-h` | Output height in pixels | Yes |
 | `--output` | `-o` | Output file path (default: input_scaled.ext) | No |
 | `--format` | `-f` | Output format: jpg, jpeg, png, webp, bmp | No |
-| `--background` | `-b` | Background color (name or hex, default: black) | No |
+| `--background` | `-b` | Background color (name, hex, or auto extraction) | No |
 
 ## How It Works
 
 1. **Load Input Image**: Opens the specified input image file
-2. **Calculate Scaling**: Scales the image to match 100% of the output height while maintaining aspect ratio
-3. **Create Canvas**: Creates a new canvas with the specified output dimensions and background color
-4. **Position Image**: Centers the scaled image horizontally on the canvas
-5. **Save Output**: Saves the final image in the specified format
+2. **Extract Background Color** (optional): If auto-extraction is enabled, analyzes the image to determine background color
+3. **Calculate Scaling**: Scales the image to match 100% of the output height while maintaining aspect ratio
+4. **Create Canvas**: Creates a new canvas with the specified output dimensions and background color
+5. **Position Image**: Centers the scaled image horizontally on the canvas
+6. **Save Output**: Saves the final image in the specified format
 
 ## Examples
 
