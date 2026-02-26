@@ -1,0 +1,9 @@
+[project]
+name = "wallpaper-scaler"
+version = "0.1.0"
+description = "A utility to scale images to fit specific output dimensions while maintaining aspect ratio"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pillow>=10.0.0",
+]
