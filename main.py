@@ -28,6 +28,176 @@ def parse_color(color_string):
         raise argparse.ArgumentTypeError(f"Invalid color: {color_string}")
 
 
+def extract_dominant_color(img):
+    """
+    Extract the dominant (most common) color from an image.
+    
+    Args:
+        img: PIL Image object
+    
+    Returns:
+        RGB tuple (r, g, b)
+    """
+    # Convert to RGB if needed
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    
+    # Use quantization to find dominant color
+    # Reduce image to 1 color (the most dominant)
+    quantized = img.quantize(colors=1)
+    
+    # Get the palette and extract the single color
+    palette = quantized.getpalette()
+    # Palette is a flat list [r1, g1, b1, r2, g2, b2, ...]
+    # We want the first color
+    dominant_color = (palette[0], palette[1], palette[2])
+    
+    return dominant_color
+
+
+def extract_average_color(img):
+    """
+    Extract the average color from an image.
+    
+    Args:
+        img: PIL Image object
+    
+    Returns:
+        RGB tuple (r, g, b)
+    """
+    # Convert to RGB if needed
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    
+    # For large images, downsample for performance
+    width, height = img.size
+    if width * height > 2_000_000:  # > 2 megapixels
+        # Downsample to ~1MP
+        scale_factor = (1_000_000 / (width * height)) ** 0.5
+        new_size = (int(width * scale_factor), int(height * scale_factor))
+        img = img.resize(new_size, Image.Resampling.LANCZOS)
+    
+    # Get all pixels
+    pixels = list(img.getdata())
+    
+    # Calculate average RGB
+    total_r = sum(p[0] for p in pixels)
+    total_g = sum(p[1] for p in pixels)
+    total_b = sum(p[2] for p in pixels)
+    
+    num_pixels = len(pixels)
+    avg_color = (
+        total_r // num_pixels,
+        total_g // num_pixels,
+        total_b // num_pixels
+    )
+    
+    return avg_color
+
+
+def extract_edge_color(img, region='all'):
+    """
+    Extract color by sampling from image edges.
+    
+    Args:
+        img: PIL Image object
+        region: 'all' for all edges, 'corners' for corner regions only
+    
+    Returns:
+        RGB tuple (r, g, b)
+    """
+    # Convert to RGB if needed
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    
+    width, height = img.size
+    pixels = []
+    
+    if region == 'corners':
+        # Sample 10x10 regions from each corner
+        corner_size = min(10, width // 4, height // 4)
+        
+        # Top-left
+        for y in range(corner_size):
+            for x in range(corner_size):
+                pixels.append(img.getpixel((x, y)))
+        
+        # Top-right
+        for y in range(corner_size):
+            for x in range(width - corner_size, width):
+                pixels.append(img.getpixel((x, y)))
+        
+        # Bottom-left
+        for y in range(height - corner_size, height):
+            for x in range(corner_size):
+                pixels.append(img.getpixel((x, y)))
+        
+        # Bottom-right
+        for y in range(height - corner_size, height):
+            for x in range(width - corner_size, width):
+                pixels.append(img.getpixel((x, y)))
+    
+    else:  # region == 'all'
+        # Sample all edge pixels
+        # Top edge
+        for x in range(width):
+            pixels.append(img.getpixel((x, 0)))
+        
+        # Bottom edge
+        for x in range(width):
+            pixels.append(img.getpixel((x, height - 1)))
+        
+        # Left edge (excluding corners already sampled)
+        for y in range(1, height - 1):
+            pixels.append(img.getpixel((0, y)))
+        
+        # Right edge (excluding corners already sampled)
+        for y in range(1, height - 1):
+            pixels.append(img.getpixel((width - 1, y)))
+    
+    # Calculate average of sampled pixels
+    total_r = sum(p[0] for p in pixels)
+    total_g = sum(p[1] for p in pixels)
+    total_b = sum(p[2] for p in pixels)
+    
+    num_pixels = len(pixels)
+    avg_color = (
+        total_r // num_pixels,
+        total_g // num_pixels,
+        total_b // num_pixels
+    )
+    
+    return avg_color
+
+
+def extract_background_color(img, method='dominant', sampling_region='all'):
+    """
+    Extract background color from an image using specified method.
+    
+    Args:
+        img: PIL Image object
+        method: 'dominant', 'average', or 'edge'
+        sampling_region: 'all' or 'corners' (used for edge method)
+    
+    Returns:
+        RGB tuple (r, g, b)
+    
+    Raises:
+        ValueError: If method is invalid
+    """
+    if method == 'dominant':
+        return extract_dominant_color(img)
+    elif method == 'average':
+        return extract_average_color(img)
+    elif method == 'edge':
+        return extract_edge_color(img, region=sampling_region)
+    else:
+        raise ValueError(
+            f"Invalid extraction method: {method}. "
+            f"Valid methods: dominant, average, edge"
+        )
+
+
 def scale_image(input_path, output_width, output_height, output_path=None, 
                 output_format=None, background_color=(0, 0, 0)):
     """
