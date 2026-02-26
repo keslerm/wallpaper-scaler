@@ -258,7 +258,7 @@ def scale_image(input_path, output_width, output_height, output_path=None,
         output_height: Target output height in pixels
         output_path: Path for output file (optional)
         output_format: Output image format (optional, e.g., 'PNG', 'JPEG')
-        background_color: RGB tuple for background color (default: black)
+        background_color: RGB tuple or extraction spec dict
     
     Returns:
         Path to the output file
@@ -270,6 +270,20 @@ def scale_image(input_path, output_width, output_height, output_path=None,
         raise FileNotFoundError(f"Input file not found: {input_path}")
     except Exception as e:
         raise ValueError(f"Failed to open image: {e}")
+    
+    # Handle auto background color extraction
+    if isinstance(background_color, dict) and background_color.get('auto'):
+        try:
+            extracted_color = extract_background_color(
+                img,
+                method=background_color.get('method', 'dominant'),
+                sampling_region=background_color.get('region', 'all')
+            )
+            print(f"Extracted background color: RGB{extracted_color} using method '{background_color['method']}'")
+            background_color = extracted_color
+        except Exception as e:
+            print(f"Warning: Color extraction failed ({e}), falling back to black")
+            background_color = (0, 0, 0)
     
     # Validate output dimensions
     if output_width <= 0 or output_height <= 0:
