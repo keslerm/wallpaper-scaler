@@ -49,6 +49,10 @@ def parse_background_arg(background_string):
         # Parse region (only for edge method)
         if len(parts) >= 3:
             region = parts[2]
+            if method != 'edge':
+                raise argparse.ArgumentTypeError(
+                    f"Sampling region can only be specified for edge method"
+                )
             if region not in ['all', 'corners']:
                 raise argparse.ArgumentTypeError(
                     f"Invalid sampling region: {region}. "
