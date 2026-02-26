@@ -274,12 +274,14 @@ def scale_image(input_path, output_width, output_height, output_path=None,
     # Handle auto background color extraction
     if isinstance(background_color, dict) and background_color.get('auto'):
         try:
+            method = background_color.get('method', 'dominant')
+            sampling_region = background_color.get('region', 'all')
             extracted_color = extract_background_color(
                 img,
-                method=background_color.get('method', 'dominant'),
-                sampling_region=background_color.get('region', 'all')
+                method=method,
+                sampling_region=sampling_region
             )
-            print(f"Extracted background color: RGB{extracted_color} using method '{background_color['method']}'")
+            print(f"Extracted background color: RGB{extracted_color} using method '{method}'")
             background_color = extracted_color
         except Exception as e:
             print(f"Warning: Color extraction failed ({e}), falling back to black")
